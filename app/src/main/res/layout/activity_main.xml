@@ -1,18 +1,24 @@
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:id="@+id/outputTextView"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="24sp"
-        android:gravity="center"
-        android:layout_marginBottom="16dp"
-        android:text="Texto seleccionado:"/>
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/outputTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="48sp"
+            android:padding="8dp"
+            android:scrollbars="vertical"
+            android:gravity="start|top"/>
+    </ScrollView>
+
 
     <!-- Botones en un GridLayout -->
     <GridLayout
@@ -20,6 +26,6 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:columnCount="5"
-        android:padding="10dp"/>
+        android:columnCount="10"
+        android:padding="10dp" />
 </LinearLayout>
