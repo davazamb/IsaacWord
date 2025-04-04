@@ -6,42 +6,20 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/selectedTextView"
+        android:id="@+id/outputTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="24sp"
         android:gravity="center"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="16dp"
+        android:text="Texto seleccionado:"/>
 
-    <LinearLayout
+    <!-- Botones en un GridLayout -->
+    <GridLayout
+        android:id="@+id/gridLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="16dp">
-
-        <Button
-            android:id="@+id/buttonA"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="A"/>
-
-        <Button
-            android:id="@+id/buttonB"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="B"/>
-
-        <Button
-            android:id="@+id/buttonSpace"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Espacio"/>
-
-        <Button
-            android:id="@+id/buttonDelete"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Borrar"/>
-    </LinearLayout>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:columnCount="5"
+        android:padding="10dp"/>
 </LinearLayout>
