@@ -1,7 +1,9 @@
 package com.example.isaacwords;
 
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
@@ -12,11 +14,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import android.speech.tts.TextToSpeech;
+import java.util.Locale;
+
+
 
 public class MainActivity extends AppCompatActivity {
 
     private TextView outputTextView;
     private File file;
+    private TextToSpeech tts;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,21 +37,26 @@ public class MainActivity extends AppCompatActivity {
         GridLayout gridLayout = findViewById(R.id.gridLayout);
         outputTextView.setMovementMethod(new android.text.method.ScrollingMovementMethod());
         // Crear el archivo donde se guardará el texto
-        file = new File(getApplicationContext().getFilesDir(), "texto_guardado.txt");
-
+        String fecha = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        String nombreArchivo = "LogIsaacWords_" + fecha + ".txt";
+        file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), nombreArchivo);
         // Abecedario
-        String alphabet = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String alphabet = "1234567890QWERTYUIOPASDFGHJKLÑZXCVBNM";
         String vowels = "1234567890"; // Criterio: vocales
 
-        // Crear botones dinámicamente para el abecedario
+        // Crear botones dinámicamente para el abecedarioc
         for (char letter : alphabet.toCharArray()) {
             Button button = new Button(this);
             button.setText(String.valueOf(letter));
             // Asignar color según el criterio (vocales y consonantes)
             if (vowels.contains(String.valueOf(letter))) {
                 button.setBackgroundColor(getResources().getColor(android.R.color.holo_red_light)); // Rojo para vocales
+                button.setTextColor(Color.BLACK); // Texto en negro
+                button.setTextSize(18);
             } else {
                 button.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light)); // Azul para consonantes
+                button.setTextColor(Color.BLACK); // Texto en negro
+                button.setTextSize(18);
             }
 
             // Establecer parámetros de diseño para hacerlo responsivo
@@ -122,6 +137,59 @@ public class MainActivity extends AppCompatActivity {
         });
 
         gridLayout.addView(deleteButton);
+        tts = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                int result = tts.setLanguage(new Locale("es", "ES")); // Español
+                tts.setSpeechRate(0.8f); // Más lento
+                tts.setPitch(1.0f);      // Tono neutro
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    // Puedes mostrar un mensaje si el idioma no está disponible
+                }
+            }
+        });
+
+
+        Button speakButton = new Button(this);
+        speakButton.setText("Leer");
+        GridLayout.LayoutParams speakParams = new GridLayout.LayoutParams();
+        speakParams.width = 0;
+        speakParams.height = 0;
+        speakParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        speakParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        speakButton.setLayoutParams(speakParams);
+        speakButton.setBackgroundColor(getResources().getColor(android.R.color.holo_purple)); // Color distintivo
+
+        speakButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String texto = outputTextView.getText().toString();
+                if (!texto.isEmpty()) {
+                    tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null);
+                }
+            }
+        });
+
+        gridLayout.addView(speakButton);
+
+        // Botón para SALTO LINEA
+//        Button lineButton = new Button(this);
+//        lineButton.setText("SALTO");
+//        GridLayout.LayoutParams lineParams = new GridLayout.LayoutParams();
+//        lineParams.width = 0;
+//        lineParams.height = 0;
+//        lineParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+//        lineParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+//        lineButton.setLayoutParams(lineParams);
+//        lineButton.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light)); // Verde para espacio
+//        lineButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                outputTextView.append("salto");
+//                // Guardar automáticamente el espacio en el archivo
+//                saveToFile(" ");
+//            }
+//        });
+//        gridLayout.addView(lineButton);
 
 
     }
@@ -143,4 +211,13 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+    @Override
+    protected void onDestroy() {
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+        }
+        super.onDestroy();
+    }
+
 }

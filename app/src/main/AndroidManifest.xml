@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 
-    <application
+<application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -12,7 +14,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.IsaacWords"
         tools:targetApi="31">
-        <activity
+    <meta-data
+    android:name="Dev: David Zambrano"
+    android:value="david.zambrano10@gmail.com"/>
+    <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
@@ -21,5 +26,4 @@
             </intent-filter>
         </activity>
     </application>
-
 </manifest>
