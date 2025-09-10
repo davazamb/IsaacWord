@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         for (char letter : alphabet.toCharArray()) {
             Button button = new Button(this);
             button.setText(String.valueOf(letter));
-            button.setTextSize(12);
+            button.setTextSize(14);
             button.setTextColor(Color.BLACK);
 
             if (Character.isDigit(letter)) {
