@@ -51,12 +51,12 @@ public class MainActivity extends AppCompatActivity {
             // Asignar color según el criterio (vocales y consonantes)
             if (vowels.contains(String.valueOf(letter))) {
                 button.setBackgroundColor(getResources().getColor(android.R.color.holo_red_light)); // Rojo para vocales
-                button.setTextColor(Color.BLACK); // Texto en negro
-                button.setTextSize(18);
+                button.setTextColor(Color.WHITE); // Texto en negro
+                button.setTextSize(12);
             } else {
                 button.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light)); // Azul para consonantes
                 button.setTextColor(Color.BLACK); // Texto en negro
-                button.setTextSize(18);
+                button.setTextSize(12);
             }
 
             // Establecer parámetros de diseño para hacerlo responsivo
