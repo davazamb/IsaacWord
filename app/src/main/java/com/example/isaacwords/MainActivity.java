@@ -4,6 +4,9 @@ import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.speech.tts.TextToSpeech;
+import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.Button;
 import android.widget.GridLayout;
@@ -16,10 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import android.speech.tts.TextToSpeech;
 import java.util.Locale;
-
-
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,171 +27,133 @@ public class MainActivity extends AppCompatActivity {
     private File file;
     private TextToSpeech tts;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE); // Horizontal
-        outputTextView = findViewById(R.id.outputTextView);
-        GridLayout gridLayout = findViewById(R.id.gridLayout);
-        outputTextView.setMovementMethod(new android.text.method.ScrollingMovementMethod());
-        // Crear el archivo donde se guardará el texto
-        String fecha = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        String nombreArchivo = "LogIsaacWords_" + fecha + ".txt";
-        file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), nombreArchivo);
-        // Abecedario
-        String alphabet = "1234567890QWERTYUIOPASDFGHJKLÑZXCVBNM";
-        String vowels = "1234567890"; // Criterio: vocales
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
-        // Crear botones dinámicamente para el abecedarioc
+        outputTextView = findViewById(R.id.outputTextView);
+        outputTextView.setMovementMethod(new ScrollingMovementMethod());
+        GridLayout gridLayout = findViewById(R.id.gridLayout);
+
+        // Inicializar archivo .log diario
+        String fecha = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        String nombreArchivo = "IsaacWords_" + fecha + ".log";
+        file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), nombreArchivo);
+
+        // Inicializar TextToSpeech
+        tts = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                tts.setLanguage(new Locale("es", "ES"));
+                tts.setSpeechRate(0.8f); // Más lento
+                tts.setPitch(1.2f);      // Tono más cálido
+            }
+        });
+
+        // Letras del teclado
+        String alphabet = "1234567890QWERTYUIOPASDFGHJKLÑZXCVBNM";
+        String vowels = "AEIOU";
+
         for (char letter : alphabet.toCharArray()) {
             Button button = new Button(this);
             button.setText(String.valueOf(letter));
-            // Asignar color según el criterio (vocales y consonantes)
-            if (vowels.contains(String.valueOf(letter))) {
-                button.setBackgroundColor(getResources().getColor(android.R.color.holo_red_light)); // Rojo para vocales
-                button.setTextColor(Color.WHITE); // Texto en negro
-                button.setTextSize(12);
+            button.setTextSize(12);
+            button.setTextColor(Color.BLACK);
+
+            if (Character.isDigit(letter)) {
+                button.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_light)); // Números: naranja
             } else {
-                button.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light)); // Azul para consonantes
-                button.setTextColor(Color.BLACK); // Texto en negro
-                button.setTextSize(12);
+                button.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light)); // Letras: azul
             }
 
-            // Establecer parámetros de diseño para hacerlo responsivo
+
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-            params.width = 0; // Ancho responsivo
-            params.height = 0; // Altura responsiva
-            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f); // Peso de la fila
-            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f); // Peso de la columna
+            params.width = 0;
+            params.height = 0;
+            params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
             button.setLayoutParams(params);
 
-            button.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    // Añadir la letra seleccionada al TextView
-                    String selectedText = ((Button) v).getText().toString();
-                    outputTextView.append(selectedText);
-
-                    // Guardar automáticamente en el archivo
-                    saveToFile(selectedText);
-                }
+            button.setOnClickListener(v -> {
+                String selectedText = ((Button) v).getText().toString();
+                outputTextView.append(selectedText);
+                saveToFile(selectedText);
             });
 
-            // Añadir el botón al GridLayout
             gridLayout.addView(button);
         }
 
-        // Botón para espacio
+        // Botón Espacio
         Button spaceButton = new Button(this);
         spaceButton.setText("Espacio");
-        GridLayout.LayoutParams spaceParams = new GridLayout.LayoutParams();
-        spaceParams.width = 0;
-        spaceParams.height = 0;
-        spaceParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        spaceParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        spaceButton.setLayoutParams(spaceParams);
-        spaceButton.setBackgroundColor(getResources().getColor(android.R.color.holo_green_light)); // Verde para espacio
-        spaceButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                outputTextView.append(" ");
-                // Guardar automáticamente el espacio en el archivo
-                saveToFile(" ");
-            }
+        spaceButton.setBackgroundColor(getResources().getColor(android.R.color.holo_green_light));
+        spaceButton.setLayoutParams(genericParams());
+        spaceButton.setOnClickListener(v -> {
+            outputTextView.append(" ");
+            saveToFile(" ");
         });
         gridLayout.addView(spaceButton);
 
-        // Botón para borrar
+        // Botón Borrar
         Button deleteButton = new Button(this);
         deleteButton.setText("Borrar");
-        GridLayout.LayoutParams deleteParams = new GridLayout.LayoutParams();
-        deleteParams.width = 0;
-        deleteParams.height = 0;
-        deleteParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        deleteParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        deleteButton.setLayoutParams(deleteParams);
-        deleteButton.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_light)); // Naranja para borrar
-        deleteButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String currentText = outputTextView.getText().toString();
-                if (!currentText.isEmpty()) {
-                    // Borrar la última letra o espacio del TextView
-                    outputTextView.setText(currentText.substring(0, currentText.length() - 1));
-                    // Guardar el texto actual en el archivo
-                    saveCurrentTextToFile();
-                }
-            }
-        });
-        // Pulsación larga: Borrar todo
-        deleteButton.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                // Eliminar todo el contenido del TextView
-                outputTextView.setText("");
+        deleteButton.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_light));
+        deleteButton.setLayoutParams(genericParams());
+        deleteButton.setOnClickListener(v -> {
+            String currentText = outputTextView.getText().toString();
+            if (!currentText.isEmpty()) {
+                outputTextView.setText(currentText.substring(0, currentText.length() - 1));
                 saveCurrentTextToFile();
-                return true; // Indica que se manejó la acción de pulsación larga
             }
         });
-
+        deleteButton.setOnLongClickListener(v -> {
+            outputTextView.setText("");
+            saveCurrentTextToFile();
+            return true;
+        });
         gridLayout.addView(deleteButton);
-        tts = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) {
-                int result = tts.setLanguage(new Locale("es", "ES")); // Español
-                tts.setSpeechRate(0.8f); // Más lento
-                tts.setPitch(1.0f);      // Tono neutro
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    // Puedes mostrar un mensaje si el idioma no está disponible
-                }
-            }
-        });
 
-
+        // Botón Leer
         Button speakButton = new Button(this);
         speakButton.setText("Leer");
-        GridLayout.LayoutParams speakParams = new GridLayout.LayoutParams();
-        speakParams.width = 0;
-        speakParams.height = 0;
-        speakParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        speakParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        speakButton.setLayoutParams(speakParams);
-        speakButton.setBackgroundColor(getResources().getColor(android.R.color.holo_purple)); // Color distintivo
+        speakButton.setBackgroundColor(getResources().getColor(android.R.color.holo_purple));
+        speakButton.setLayoutParams(genericParams());
 
-        speakButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String texto = outputTextView.getText().toString();
-                if (!texto.isEmpty()) {
-                    tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null);
+        speakButton.setOnClickListener(v -> {
+            String texto = outputTextView.getText().toString();
+            if (!texto.isEmpty()) {
+                speakButton.setBackgroundColor(Color.YELLOW);
+                new Handler().postDelayed(() -> {
+                    speakButton.setBackgroundColor(getResources().getColor(android.R.color.holo_purple));
+                }, 500);
+
+                // Lectura palabra por palabra
+                String[] palabras = texto.split(" ");
+                for (String palabra : palabras) {
+                    tts.speak(palabra, TextToSpeech.QUEUE_ADD, null, null);
                 }
             }
+        });
+
+        speakButton.setOnLongClickListener(v -> {
+            String texto = outputTextView.getText().toString();
+            if (!texto.isEmpty()) {
+                tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null);
+            }
+            return true;
         });
 
         gridLayout.addView(speakButton);
+    }
 
-        // Botón para SALTO LINEA
-//        Button lineButton = new Button(this);
-//        lineButton.setText("SALTO");
-//        GridLayout.LayoutParams lineParams = new GridLayout.LayoutParams();
-//        lineParams.width = 0;
-//        lineParams.height = 0;
-//        lineParams.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-//        lineParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-//        lineButton.setLayoutParams(lineParams);
-//        lineButton.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light)); // Verde para espacio
-//        lineButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                outputTextView.append("salto");
-//                // Guardar automáticamente el espacio en el archivo
-//                saveToFile(" ");
-//            }
-//        });
-//        gridLayout.addView(lineButton);
-
-
+    private GridLayout.LayoutParams genericParams() {
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+        params.width = 0;
+        params.height = 0;
+        params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        return params;
     }
 
     private void saveToFile(String content) {
@@ -211,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
     @Override
     protected void onDestroy() {
         if (tts != null) {
@@ -219,5 +182,4 @@ public class MainActivity extends AppCompatActivity {
         }
         super.onDestroy();
     }
-
 }
