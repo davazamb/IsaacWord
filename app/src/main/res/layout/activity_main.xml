@@ -4,23 +4,41 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <ScrollView
+    <!-- Fila superior: EditText + botón Salto -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/outputTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        <EditText
+            android:id="@+id/outputEditText"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:inputType="textMultiLine"
+            android:gravity="start|top"
             android:textSize="48sp"
-            android:padding="8dp"
+            android:textColor="#000000"
+            android:background="@android:color/transparent"
+            android:cursorVisible="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
             android:scrollbars="vertical"
-            android:gravity="start|top"/>
-    </ScrollView>
+            android:overScrollMode="always"
+            android:padding="8dp" />
 
+        <Button
+            android:id="@+id/lineBreakButton"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="LINEA"
+            android:textSize="18sp"
+            android:background="@android:color/holo_blue_light"
+            android:padding="16dp" />
+    </LinearLayout>
 
-    <!-- Botones en un GridLayout -->
+    <!-- Teclado completo sin scroll -->
     <GridLayout
         android:id="@+id/gridLayout"
         android:layout_width="match_parent"

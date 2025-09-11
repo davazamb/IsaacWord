@@ -7,23 +7,23 @@ import android.os.Environment;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
 import android.text.method.ScrollingMovementMethod;
-import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridLayout;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView outputTextView;
+    private EditText outputEditText;
     private File file;
     private TextToSpeech tts;
 
@@ -33,27 +33,46 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
-        outputTextView = findViewById(R.id.outputTextView);
-        outputTextView.setMovementMethod(new ScrollingMovementMethod());
-        GridLayout gridLayout = findViewById(R.id.gridLayout);
+        outputEditText = findViewById(R.id.outputEditText);
+        int nightModeFlags = getResources().getConfiguration().uiMode &
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK;
 
-        // Inicializar archivo .log diario
+        if (nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES) {
+            outputEditText.setTextColor(Color.WHITE);
+        } else {
+            outputEditText.setTextColor(Color.BLACK);
+        }
+
+
+        outputEditText.setMovementMethod(new ScrollingMovementMethod());
+
+        // Bloquear teclado del sistema
+        try {
+            Method method = EditText.class.getMethod("setShowSoftInputOnFocus", boolean.class);
+            method.invoke(outputEditText, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        GridLayout gridLayout = findViewById(R.id.gridLayout);
+        Button lineBreakButton = findViewById(R.id.lineBreakButton);
+
+        // Archivo .log diario
         String fecha = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         String nombreArchivo = "IsaacWords_" + fecha + ".log";
         file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), nombreArchivo);
 
-        // Inicializar TextToSpeech
+        // TextToSpeech
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 tts.setLanguage(new Locale("es", "ES"));
-                tts.setSpeechRate(0.8f); // Más lento
-                tts.setPitch(1.2f);      // Tono más cálido
+                tts.setSpeechRate(0.8f);
+                tts.setPitch(1.2f);
             }
         });
 
-        // Letras del teclado
+        // Letras y números
         String alphabet = "1234567890QWERTYUIOPASDFGHJKLÑZXCVBNM";
-        String vowels = "AEIOU";
 
         for (char letter : alphabet.toCharArray()) {
             Button button = new Button(this);
@@ -62,11 +81,10 @@ public class MainActivity extends AppCompatActivity {
             button.setTextColor(Color.BLACK);
 
             if (Character.isDigit(letter)) {
-                button.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_light)); // Números: naranja
+                button.setBackgroundColor(getResources().getColor(android.R.color.holo_red_light));
             } else {
-                button.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light)); // Letras: azul
+                button.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_light));
             }
-
 
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
             params.width = 0;
@@ -76,9 +94,9 @@ public class MainActivity extends AppCompatActivity {
             button.setLayoutParams(params);
 
             button.setOnClickListener(v -> {
-                String selectedText = ((Button) v).getText().toString();
-                outputTextView.append(selectedText);
-                saveToFile(selectedText);
+                int cursorPos = outputEditText.getSelectionStart();
+                outputEditText.getText().insert(cursorPos, button.getText().toString());
+                saveToFile(button.getText().toString());
             });
 
             gridLayout.addView(button);
@@ -89,10 +107,20 @@ public class MainActivity extends AppCompatActivity {
         spaceButton.setText("Espacio");
         spaceButton.setBackgroundColor(getResources().getColor(android.R.color.holo_green_light));
         spaceButton.setLayoutParams(genericParams());
+
         spaceButton.setOnClickListener(v -> {
-            outputTextView.append(" ");
+            int cursorPos = outputEditText.getSelectionStart();
+            outputEditText.getText().insert(cursorPos, " ");
             saveToFile(" ");
         });
+
+//        spaceButton.setOnLongClickListener(v -> {
+//            int cursorPos = outputEditText.getSelectionStart();
+//            outputEditText.getText().insert(cursorPos, "\n");
+//            saveToFile("[SALTO DE LÍNEA]");
+//            return true;
+//        });
+
         gridLayout.addView(spaceButton);
 
         // Botón Borrar
@@ -100,18 +128,29 @@ public class MainActivity extends AppCompatActivity {
         deleteButton.setText("Borrar");
         deleteButton.setBackgroundColor(getResources().getColor(android.R.color.holo_orange_light));
         deleteButton.setLayoutParams(genericParams());
+
         deleteButton.setOnClickListener(v -> {
-            String currentText = outputTextView.getText().toString();
-            if (!currentText.isEmpty()) {
-                outputTextView.setText(currentText.substring(0, currentText.length() - 1));
-                saveCurrentTextToFile();
+            int cursorPos = outputEditText.getSelectionStart();
+            if (cursorPos > 0) {
+                outputEditText.getText().delete(cursorPos - 1, cursorPos);
+                saveToFile("[BORRAR]");
             }
         });
+
         deleteButton.setOnLongClickListener(v -> {
-            outputTextView.setText("");
-            saveCurrentTextToFile();
+            outputEditText.post(() -> {
+                try {
+                    outputEditText.setText("");
+                    outputEditText.setSelection(0); // Cursor al inicio
+                    saveToFile("[BORRAR TODO]");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
             return true;
         });
+
+
         gridLayout.addView(deleteButton);
 
         // Botón Leer
@@ -121,14 +160,14 @@ public class MainActivity extends AppCompatActivity {
         speakButton.setLayoutParams(genericParams());
 
         speakButton.setOnClickListener(v -> {
-            String texto = outputTextView.getText().toString();
+            String texto = outputEditText.getText().toString();
             if (!texto.isEmpty()) {
                 speakButton.setBackgroundColor(Color.YELLOW);
                 new Handler().postDelayed(() -> {
                     speakButton.setBackgroundColor(getResources().getColor(android.R.color.holo_purple));
                 }, 500);
 
-                // Lectura palabra por palabra
+                saveToFile("[LECTURA]");
                 String[] palabras = texto.split(" ");
                 for (String palabra : palabras) {
                     tts.speak(palabra, TextToSpeech.QUEUE_ADD, null, null);
@@ -137,14 +176,22 @@ public class MainActivity extends AppCompatActivity {
         });
 
         speakButton.setOnLongClickListener(v -> {
-            String texto = outputTextView.getText().toString();
+            String texto = outputEditText.getText().toString();
             if (!texto.isEmpty()) {
+                saveToFile("[LECTURA REPETIDA]");
                 tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null);
             }
             return true;
         });
 
         gridLayout.addView(speakButton);
+
+        // Botón Salto de línea al lado del EditText
+        lineBreakButton.setOnClickListener(v -> {
+            int cursorPos = outputEditText.getSelectionStart();
+            outputEditText.getText().insert(cursorPos, "\n");
+            saveToFile("[SALTO DE LÍNEA]");
+        });
     }
 
     private GridLayout.LayoutParams genericParams() {
@@ -157,17 +204,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveToFile(String content) {
-        try (FileOutputStream fos = new FileOutputStream(file, true)) {
-            fos.write(content.getBytes());
-            fos.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+        String timestamp = new SimpleDateFormat("HH:mm:ss.SSS").format(new Date());
+        String logEntry = "[" + timestamp + "] " + content + "\n";
 
-    private void saveCurrentTextToFile() {
-        try (FileOutputStream fos = new FileOutputStream(file)) {
-            fos.write(outputTextView.getText().toString().getBytes());
+        try (FileOutputStream fos = new FileOutputStream(file, true)) {
+            fos.write(logEntry.getBytes());
             fos.flush();
         } catch (IOException e) {
             e.printStackTrace();
